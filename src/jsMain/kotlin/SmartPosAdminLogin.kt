@@ -1,4 +1,5 @@
 import androidx.compose.runtime.*
+import org.jetbrains.compose.web.ExperimentalComposeWebApi
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.dom.*
 
@@ -59,10 +60,11 @@ fun smartposAdminLogin() {
 
 }
 
+@OptIn(ExperimentalComposeWebApi::class)
 @Composable
 fun TabSwitch() {
 
-    var selectedOne by remember { mutableStateOf(true) }
+    val selectedOne = remember { mutableStateOf(true) }
 
     Div(attrs = {
         style {
@@ -76,12 +78,11 @@ fun TabSwitch() {
     }) {
 
         Div(attrs = {
+            onClick {
+                selectedOne.value = false
+            }
             style {
-                borderRadius(8.px)
-                background("#F9FAFB")
-                alignItems(AlignItems.Center)
-                padding(6.px)
-                gridTemplateColumns("1fr 1fr")
+                tabItemStyle(selectedOne.value)
             }
         }) {
             Text("По логину и паролю")
@@ -89,15 +90,11 @@ fun TabSwitch() {
 
 
         Div(attrs = {
+            onClick {
+                selectedOne.value = true
+            }
             style {
-                if (selectedOne) selectedTabItemStyle()
-                else notSelectedTabItemStyle()
-                borderRadius(8.px)
-                background("#F9FAFB")
-                alignItems(AlignItems.Center)
-                padding(6.px)
-                gridTemplateColumns("1fr 1fr")
-                fontSize(16.px)
+                tabItemStyle(!selectedOne.value)
             }
         }) {
             Text("По ключу ЭЦП")
@@ -105,20 +102,32 @@ fun TabSwitch() {
     }
 }
 
-@Composable
+fun StyleScope.tabItemStyle(isSelected: Boolean) {
+    display(DisplayStyle.Flex)
+    justifyContent(JustifyContent.Center)
+    if (isSelected) notSelectedTabItemStyle()
+    else selectedTabItemStyle()
+    paddingTop(10.px)
+    paddingBottom(10.px)
+    paddingLeft(22.px)
+    paddingRight(22.px)
+    borderRadius(8.px)
+    alignItems(AlignItems.Center)
+    fontSize(16.px)
+    property("transition", "ease-in 0.1s")
+}
+
 fun StyleScope.selectedTabItemStyle() {
     color(Color("#1D2939"))
     fontFamily("Roboto", "Helvetica", "Arial", "sans-serif")
     fontWeight("bold")
     background("#fff")
-    Color.transparent
+    property("box-shadow","0px 1px 2px rgb(29 27 51 / 5%)")
 }
 
-@Composable
 fun StyleScope.notSelectedTabItemStyle() {
     color(Color("#667085"))
     fontFamily("Roboto", "Helvetica", "Arial", "sans-serif")
     fontWeight("lighter")
     background("00FFFFFF")
-
 }
