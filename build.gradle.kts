@@ -34,6 +34,8 @@ kotlin {
             dependencies {
                 implementation(compose.web.core)
                 implementation(compose.runtime)
+                implementation("io.ktor:ktor-client-core:2.2.2")
+                implementation("io.ktor:ktor-client-js:2.2.2")
             }
         }
         val jsTest by getting {

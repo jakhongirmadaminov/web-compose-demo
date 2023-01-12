@@ -1,9 +1,26 @@
 import androidx.compose.runtime.*
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.js.*
+import io.ktor.client.plugins.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.InputType
+import org.jetbrains.compose.web.attributes.placeholder
 import org.jetbrains.compose.web.css.*
 import org.jetbrains.compose.web.css.DisplayStyle.Companion.Block
 import org.jetbrains.compose.web.css.DisplayStyle.Companion.Flex
+import org.jetbrains.compose.web.css.DisplayStyle.Companion.InlineBlock
+import org.jetbrains.compose.web.css.keywords.auto
 import org.jetbrains.compose.web.dom.*
+import kotlin.js.Console
+
+val httpClient by lazy { HttpClient(Js) }
 
 @Composable
 fun smartposAdminLogin() {
@@ -11,6 +28,17 @@ fun smartposAdminLogin() {
         style {
             margin(-8.px)
             property("font-family", "Arial, Helvetica, sans-serif")
+            fontFamily("Gilroy")
+            display(Flex)
+            alignItems(AlignItems.Center)
+            justifyContent(JustifyContent.SpaceBetween)
+            flexDirection(FlexDirection.Column)
+            overflowY("scroll")
+            height(100.vh)
+            width(100.percent)
+            backgroundSize("cover")
+            backgroundImage("url(https://cabinet-dev.smartpos.uz/c76b6f54bb3a51c6e6bf74bb123b6fb6.png)")
+            backgroundColor(Color.white)
         }
     }) {
 
@@ -19,6 +47,7 @@ fun smartposAdminLogin() {
                 alignContent(AlignContent.Start)
                 paddingTop(50.px)
                 paddingLeft(150.px)
+                alignSelf("start")
             }
         })
         Div(attrs = {
@@ -32,66 +61,315 @@ fun smartposAdminLogin() {
         }) {
             Div(attrs = {
                 style {
+                    width(100.percent)
                     display(Flex)
-                    background("#DEDEDE")
                     alignItems(AlignItems.Center)
                     justifyContent(JustifyContent.Center)
                     flexDirection(FlexDirection.Column)
+                    position(Position.Relative)
                 }
             }) {
-                LoginTitle()
-                LoginSubtitle()
+                Div {
+                    LoginTitle()
+                    LoginSubtitle()
 
-                val selectedOne = remember { mutableStateOf(true) }
-                TabSwitch(selectedOne)
-                Form(attrs = {
-                    style {
-                        display(Flex)
-                        justifyContent(JustifyContent.SpaceBetween)
-                        flexDirection(FlexDirection.Column)
-                        if (selectedOne.value) {
-                            minHeight(350.px)
+                    val selectedOne = remember { mutableStateOf(true) }
+                    TabSwitch(selectedOne)
+                    Form(attrs = {
+                        style {
+                            display(Flex)
+                            marginTop(32.px)
+                            flexDirection(FlexDirection.Column)
+                            if (selectedOne.value) {
+                                minHeight(350.px)
+                            }
                         }
-                    }
-                }) {
-                    if (selectedOne.value) {
-                        WithLoginPass()
+                    }) {
+                        if (selectedOne.value) {
+                            WithLoginPass()
+                            InputPassword()
+                            rememberMe()
+                            loginButton()
+                            informText()
+                        }
                     }
                 }
             }
+        }
+        Span(attrs = {
+            style {
+                marginBottom(24.px)
+                fontWeight(300)
+                marginTop(24.px)
+                fontSize(14.px)
+            }
+        }) {
+            Text("© 2019-2022 OOO \"Center for Digital Technology and Innovation\"")
         }
     }
 
 }
 
 @Composable
+fun informText() {
+    Div(attrs = {
+        style {
+            width(100.percent)
+            display(Flex)
+            alignSelf(AlignSelf.Center)
+            marginTop(20.px)
+            justifyContent(JustifyContent.Center)
+        }
+    }) {
+        Span {
+            Text("Вы впервые заходите в личный кабинет?")
+        }
+    }
+
+    Div(attrs = {
+        style {
+            width(100.percent)
+            display(Flex)
+            alignSelf(AlignSelf.Center)
+            marginTop(4.px)
+            justifyContent(JustifyContent.Center)
+        }
+    }) {
+        A(href = "https://cabinet-dev.smartpos.uz/user/sign-up/init", attrs = {
+            style {
+                cursor("pointer")
+            }
+        }) {
+            Span(attrs = {
+                style {
+                    fontSize(16.px)
+                    textDecorationLine("underline")
+                }
+            }) {
+                Text("Регистрация")
+            }
+        }
+    }
+
+
+}
+
+@Composable
+fun loginButton() {
+    Div(attrs = {
+        style {
+            display(Flex)
+            width(100.percent)
+            marginTop(56.px)
+            justifyContent(JustifyContent.Center)
+        }
+    }) {
+        val rememberCoroutineScope = rememberCoroutineScope()
+        Div(attrs = {
+            onClick {
+                console.log("CLICKED!!")
+                rememberCoroutineScope.launch {
+                    httpClient.postJson(urlAddress = "https://cabinet-dev.smartpos.uz/api/login/mobile") {
+                        setBody("{username: 998453463634,password: 3sdgsgsgs,remember: false}")
+                    }
+                }
+
+            }
+            style {
+                display(Flex)
+                justifyContent(JustifyContent.Center)
+                color(rgb(255, 255, 255))
+                minWidth(200.px)
+                fontSize(16.px)
+                borderRadius(8.px)
+                height(30.px)
+                paddingTop(12.px)
+                paddingBottom(12.px)
+                paddingRight(15.px)
+                paddingLeft(15.px)
+                cursor("pointer")
+                backgroundColor(rgb(21, 94, 239))
+                borderWidth(0.px)
+            }
+        }) {
+            Span(attrs = {
+                style {
+                    alignSelf(AlignSelf.Center)
+                }
+            }) {
+                Text("Войти")
+            }
+        }
+    }
+}
+
+suspend inline fun <reified T> HttpClient.postJson(
+    urlAddress: String,
+    block: HttpRequestBuilder.() -> Unit = {}
+): T {
+    val response = post {
+        contentType(ContentType.Application.Json)
+        url.takeFrom(urlAddress)
+        block()
+    }
+    if (response.status == HttpStatusCode.OK) {
+        return response.body()
+    } else {
+        throw ServerResponseException(response, response.bodyAsText())
+    }
+}
+
+@Composable
+fun rememberMe() {
+    Div(attrs = {
+        style {
+            width(100.percent)
+            display(Flex)
+            alignItems(AlignItems.Center)
+            justifyContent(JustifyContent.SpaceBetween)
+        }
+    }) {
+        Div {
+            Label {
+                Span {
+                    Input(InputType.Checkbox) {
+                    }
+                }
+                Span {
+                    Text("Запомнить меня")
+                }
+            }
+        }
+        Span {
+            Text("Забыли пароль?")
+        }
+    }
+}
+
+@Composable
 fun WithLoginPass() {
     Div(attrs = {
         style {
-            background("#ufufuf")
-            display(Block)
+            boxSizing("border-box")
+            margin(0.px)
+            padding(0.px)
             property("vertical-align", "top")
             fontSize(14.px)
-            width(100.percent)
-            maxWidth(100.percent)
-            textAlign("left")
-            position(Position.Relative)
-            paddingBottom(8.px)
+            alignContent(AlignContent.Start)
+            paddingBottom(16.px)
+
         }
     }) {
-        Label {
-            Text("Номер телефона")
-        }
-
-        val phoneInput = remember { mutableStateOf("+998 __ ___ __ __") }
-
-        Input(type = InputType.Text) {
+        Div(attrs = {
             style {
-                border(width = 1.px, LineStyle.Solid, Color("#D0D5DD"))
+                display(InlineBlock)
+                maxWidth(100.percent)
+                position(Position.Relative)
+                paddingBottom(8.px)
+                lineHeight("1.57")
+                whiteSpace("initial")
+                textAlign("left")
             }
-            defaultValue("+998 __ ___ __ __") // optional
-            onInput { event -> println(event.value) }
+        }) {
+            Label {
+                Text("Номер телефона")
+            }
         }
+
+        val phoneInput = remember { mutableStateOf("+998 __ ___ __") }
+        Div(attrs = {
+            style {
+                width(100.percent)
+                position(Position.Relative)
+                minHeight(48.px)
+                maxWidth(100.percent)
+                alignItems(AlignItems.Center)
+            }
+        }) {
+            Input(type = InputType.Text) {
+                style {
+                    flex("auto")
+                    width(100.percent)
+                    border(width = 1.px, LineStyle.Solid, Color("#D0D5DD"))
+                    boxSizing("border-box")
+                    paddingLeft(14.px)
+                    paddingRight(14.px)
+                    paddingTop(12.px)
+                    paddingBottom(12.px)
+                    borderRadius(8.px)
+                }
+                placeholder("+998 __ ___ __ __") // optional
+                onInput { event -> println(event.value) }
+            }
+
+        }
+
+    }
+}
+
+@Composable
+fun InputPassword() {
+    Div(attrs = {
+        style {
+            boxSizing("border-box")
+            margin(0.px)
+            padding(0.px)
+            property("vertical-align", "top")
+            fontSize(14.px)
+            alignContent(AlignContent.Start)
+            paddingBottom(16.px)
+
+        }
+    }) {
+        Div(attrs = {
+            style {
+                display(InlineBlock)
+                maxWidth(100.percent)
+                position(Position.Relative)
+                paddingBottom(8.px)
+                lineHeight("1.57")
+                whiteSpace("initial")
+                textAlign("left")
+            }
+        }) {
+            Label {
+                Text("Пароль")
+            }
+        }
+
+        val phoneInput = remember { mutableStateOf("+998 __ ___ __") }
+        Div(attrs = {
+            style {
+                width(100.percent)
+                position(Position.Relative)
+                minHeight(48.px)
+                maxWidth(100.percent)
+                alignItems(AlignItems.Center)
+            }
+        }) {
+            Span(attrs = {
+                style {
+
+                }
+            }) {
+                Input(type = InputType.Password) {
+                    style {
+                        flex("auto")
+                        width(100.percent)
+                        border(width = 1.px, LineStyle.Solid, Color("#D0D5DD"))
+                        boxSizing("border-box")
+                        paddingLeft(14.px)
+                        paddingRight(14.px)
+                        paddingTop(12.px)
+                        paddingBottom(12.px)
+                        borderRadius(8.px)
+                    }
+                    placeholder("Введите пароль") // optional
+                    onInput { event -> println(event.value) }
+                }
+            }
+        }
+
     }
 }
 
